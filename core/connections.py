@@ -112,6 +112,7 @@ class ConnectionManager(IConnectionManager):
                 if isinstance(connection, Client):
                     success = await self._health_check_mcp(server, connection)
                     if success:
+                        # Store the client for later use (don't keep connection open)
                         self._mcp_clients[server.name] = connection
                 else:
                     success = await self._health_check_http(server, connection)
@@ -126,13 +127,8 @@ class ConnectionManager(IConnectionManager):
                     self._logger.info(f"Connected to {server.name} on attempt {attempt + 1}")
                     return True
                 else:
-                    if isinstance(connection, Client):
-                        # Close MCP client if health check failed
-                        try:
-                            await connection.close()
-                        except:
-                            pass
-                    
+                    # For MCP clients, we don't need to close anything here
+                    # since async with handles the connection lifecycle
                     if attempt < server.retry_attempts - 1:
                         await asyncio.sleep(2 ** attempt)  # Exponential backoff
                         
@@ -156,10 +152,10 @@ class ConnectionManager(IConnectionManager):
     async def _health_check_mcp(self, server: RemoteServer, client: Client) -> bool:
         """Perform health check on MCP server connection"""
         try:
+            # Test connection using the async with pattern from working example
             async with client:
-                # Try to ping the MCP server
-                await client.ping()
-                return True
+                tools = await client.list_tools()
+                return True  # If we can list tools, server is healthy
         except Exception as e:
             self._logger.debug(f"MCP health check failed for {server.name}: {e}")
             return False

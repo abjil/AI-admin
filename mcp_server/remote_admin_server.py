@@ -690,11 +690,11 @@ def main():
         elif transport == "sse":
             # SSE mode - web-based transport (legacy)
             logger.info(f"Starting SSE server on http://{server_config['host']}:{server_config['port']}/sse")
-            server.run(transport="sse", host=server_config['host'], port=server_config['port'])
+            server.run(transport="sse", host=server_config['host'], port=server_config['port'], path="/sse")
         elif transport == "streamable-http":
             # Streamable HTTP mode - modern web-based transport
             logger.info(f"Starting Streamable HTTP server on http://{server_config['host']}:{server_config['port']}/mcp")
-            server.run(transport="streamable-http", host=server_config['host'], port=server_config['port'])
+            server.run(transport="streamable-http", host=server_config['host'], port=server_config['port'], path="/mcp")
         else:
             logger.error(f"Unknown transport mode: {transport}")
             return

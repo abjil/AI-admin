@@ -21,6 +21,9 @@ class Protocol(Enum):
     HTTP = "http"
     SSH = "ssh"
     WEBSOCKET = "ws"
+    MCP_SSE = "mcp-sse"
+    MCP_HTTP = "mcp-http"
+    MCP = "mcp"
 
 
 @dataclass

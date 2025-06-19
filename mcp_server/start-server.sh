@@ -5,6 +5,7 @@
 CONFIG_FILE="server_config.json"
 PORT=""
 HOST=""
+TRANSPORT=""
 VERBOSE=""
 
 # Function to show usage
@@ -12,20 +13,28 @@ show_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -c, --config FILE    Configuration file (default: server_config.json)"
-    echo "  -p, --port PORT      Override port from config"
-    echo "  -h, --host HOST      Override host from config (Note: FastMCP ignores this)"
-    echo "  -v, --verbose        Enable verbose logging"
-    echo "  --help              Show this help message"
+    echo "  -c, --config FILE      Configuration file (default: server_config.json)"
+    echo "  -p, --port PORT        Override port from config"
+    echo "  -h, --host HOST        Override host from config"
+    echo "  -t, --transport MODE   Transport mode: stdio, sse, streamable-http"
+    echo "  -v, --verbose          Enable verbose logging"
+    echo "  --help                Show this help message"
     echo ""
     echo "Environment Variables:"
     echo "  MCP_AUTH_TOKEN       Authentication token for the server"
     echo ""
+    echo "Transport Modes:"
+    echo "  stdio (default)        For local MCP clients like Claude Desktop"
+    echo "  sse                   For web clients using Server-Sent Events"
+    echo "  streamable-http       For modern web clients (recommended)"
+    echo ""
     echo "Examples:"
-    echo "  $0                                    # Use default config"
-    echo "  $0 -c production_config.json         # Use custom config"
-    echo "  $0 -p 9090 -v                       # Override port, verbose logging"
-    echo "  MCP_AUTH_TOKEN=secret123 $0          # With authentication"
+    echo "  $0                                    # STDIO mode (default)"
+    echo "  $0 -t sse                            # SSE web mode"
+    echo "  $0 -t streamable-http                # Modern web mode"
+    echo "  $0 -c production.json -t sse         # Custom config + SSE"
+    echo "  $0 -t sse -p 9090 -v                # SSE mode, custom port, verbose"
+    echo "  MCP_AUTH_TOKEN=secret123 $0 -t sse   # With authentication"
 }
 
 # Parse command line arguments
@@ -41,6 +50,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--host)
             HOST="$2"
+            shift 2
+            ;;
+        -t|--transport)
+            TRANSPORT="$2"
             shift 2
             ;;
         -v|--verbose)
@@ -80,6 +93,10 @@ fi
 
 if [ -n "$HOST" ]; then
     ARGS="$ARGS --host $HOST"
+fi
+
+if [ -n "$TRANSPORT" ]; then
+    ARGS="$ARGS --transport $TRANSPORT"
 fi
 
 # Set environment variables if not already set

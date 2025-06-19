@@ -629,6 +629,11 @@ def main():
         "--host",
         help="Override host from config file"
     )
+    parser.add_argument(
+        "--transport", "-t",
+        choices=["stdio", "sse", "streamable-http"],
+        help="Transport mode: stdio (local), sse (web legacy), streamable-http (web modern)"
+    )
     
     args = parser.parse_args()
     
@@ -644,6 +649,9 @@ def main():
     if args.host:
         config.config["server"]["host"] = args.host
     
+    # Determine transport mode
+    transport = args.transport or config.config.get("transport", "stdio")
+    
     # Setup logging
     setup_logging(config)
     
@@ -654,7 +662,14 @@ def main():
     register_tools(server, config)
     
     server_config = config.get("server")
-    logger.info(f"Starting {server_config['name']} on {server_config['host']}:{server_config['port']}")
+    
+    # Log startup information based on transport mode
+    if transport == "stdio":
+        logger.info(f"Starting {server_config['name']} in STDIO mode (local integration)")
+        logger.info("Server will communicate via standard input/output")
+        logger.info("No network port binding - designed for MCP clients like Claude Desktop")
+    else:
+        logger.info(f"Starting {server_config['name']} on {server_config['host']}:{server_config['port']} using {transport} transport")
     
     auth_token = server_config["auth_token"]
     if auth_token and not auth_token.startswith("${"):
@@ -667,20 +682,23 @@ def main():
     enabled_features = [name for name, enabled in features.items() if enabled]
     logger.info(f"Enabled features: {', '.join(enabled_features)}")
     
-    # Run the server
-    # Note: FastMCP doesn't support host or port parameters in run()
-    if server_config["host"] != "0.0.0.0":
-        logger.warning(f"FastMCP doesn't support custom host binding, ignoring host setting: {server_config['host']}")
-    
-    if server_config["port"] != 8080:
-        logger.warning(f"FastMCP doesn't support custom port in run(), ignoring port setting: {server_config['port']}")
-        logger.warning("FastMCP will use its default port configuration")
-    
-    # FastMCP manages its own event loop internally
-    # Call run() directly - it's designed to be called from a synchronous context
+    # Run the server with appropriate transport
     try:
-        # This should be a synchronous call that handles async internally
-        server.run()
+        if transport == "stdio":
+            # STDIO mode - no network binding, used for local MCP clients
+            server.run()
+        elif transport == "sse":
+            # SSE mode - web-based transport (legacy)
+            logger.info(f"Starting SSE server on http://{server_config['host']}:{server_config['port']}/sse")
+            server.run(transport="sse", host=server_config['host'], port=server_config['port'])
+        elif transport == "streamable-http":
+            # Streamable HTTP mode - modern web-based transport
+            logger.info(f"Starting Streamable HTTP server on http://{server_config['host']}:{server_config['port']}/mcp")
+            server.run(transport="streamable-http", host=server_config['host'], port=server_config['port'])
+        else:
+            logger.error(f"Unknown transport mode: {transport}")
+            return
+            
     except KeyboardInterrupt:
         logger.info("Received interrupt signal, shutting down...")
     except Exception as e:

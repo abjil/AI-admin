@@ -80,24 +80,26 @@ class RemoteAdminApplication:
             self._logger.error(f"Error connecting to servers: {e}")
             return False
     
-    async def run_server(self, port: Optional[int] = None) -> None:
+    def run_server(self, port: Optional[int] = None) -> None:
         """Run the MCP server"""
         if not self._admin_service or not self._mcp_tools:
             raise RuntimeError("Application not properly initialized")
         
         try:
-            run_kwargs = {}
+            # Note: FastMCP doesn't support port parameter in run()
             if port:
-                run_kwargs['port'] = port
+                self._logger.warning(f"FastMCP doesn't support custom port in run(), ignoring port setting: {port}")
+                self._logger.warning("FastMCP will use its default port configuration")
             
             self._logger.info(f"Starting {self._app_name} MCP server...")
-            await self._mcp_app.run(**run_kwargs)
+            
+            # FastMCP manages its own event loop internally
+            # Call run() directly - it's designed to be called from a synchronous context
+            self._mcp_app.run()
             
         except Exception as e:
             self._logger.error(f"Error running server: {e}")
             raise
-        finally:
-            await self.shutdown()
     
     async def shutdown(self) -> None:
         """Gracefully shutdown the application"""
@@ -190,7 +192,34 @@ class LoggingConfigurator:
         logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 
-async def main() -> None:
+async def initialize_application(args) -> RemoteAdminApplication:
+    """Initialize the application with async operations"""
+    logger = logging.getLogger(__name__)
+    app = RemoteAdminApplication()
+    
+    # Initialize application (dependency injection happens here)
+    if not args.no_auto_load:
+        logger.info(f"Auto-loading configuration from {args.config}")
+        
+        if not await app.initialize(args.config):
+            logger.error(f"Failed to initialize with config {args.config}")
+            logger.info("You can still use the application, but servers must be registered manually")
+            # Initialize with empty service for manual registration
+            app._admin_service = RemoteAdminService()
+            app._mcp_tools = MCPToolsProvider(app._admin_service, app._mcp_app)
+        else:
+            # Try to connect to servers
+            await app.connect_all_servers()
+    else:
+        logger.info("Auto-loading disabled - servers can be registered manually")
+        # Initialize with empty service
+        app._admin_service = RemoteAdminService()
+        app._mcp_tools = MCPToolsProvider(app._admin_service, app._mcp_app)
+    
+    return app
+
+
+def main() -> None:
     """
     Main entry point following SOLID principles.
     Acts as the composition root for dependency injection.
@@ -207,32 +236,14 @@ async def main() -> None:
     LoggingConfigurator.setup_logging(args.verbose)
     logger = logging.getLogger(__name__)
     
-    # Create and initialize application
-    app = RemoteAdminApplication()
-    
+    app = None
     try:
-        # Initialize application (dependency injection happens here)
-        if not args.no_auto_load:
-            logger.info(f"Auto-loading configuration from {args.config}")
-            
-            if not await app.initialize(args.config):
-                logger.error(f"Failed to initialize with config {args.config}")
-                logger.info("You can still use the application, but servers must be registered manually")
-                # Initialize with empty service for manual registration
-                app._admin_service = RemoteAdminService()
-                app._mcp_tools = MCPToolsProvider(app._admin_service, app._mcp_app)
-            else:
-                # Try to connect to servers
-                await app.connect_all_servers()
-        else:
-            logger.info("Auto-loading disabled - servers can be registered manually")
-            # Initialize with empty service
-            app._admin_service = RemoteAdminService()
-            app._mcp_tools = MCPToolsProvider(app._admin_service, app._mcp_app)
+        # Initialize application asynchronously
+        app = asyncio.run(initialize_application(args))
         
-        # Run the MCP server
+        # Run the MCP server synchronously (FastMCP manages its own event loop)
         logger.info("Starting MCP Remote Admin Controller...")
-        await app.run_server(args.port)
+        app.run_server(args.port)
         
     except KeyboardInterrupt:
         logger.info("Received interrupt signal, shutting down...")
@@ -240,16 +251,18 @@ async def main() -> None:
         logger.error(f"Unexpected error: {e}")
         raise
     finally:
-        await app.shutdown()
+        if app:
+            # Run shutdown asynchronously
+            asyncio.run(app.shutdown())
 
 
 if __name__ == "__main__":
     """
-    Entry point that handles the event loop.
+    Entry point that handles the application lifecycle.
     Follows separation of concerns.
     """
     try:
-        asyncio.run(main())
+        main()
     except KeyboardInterrupt:
         print("\nShutdown complete.")
     except Exception as e:

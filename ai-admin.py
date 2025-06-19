@@ -551,14 +551,8 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    async def main():
-        # Configure logging
-        log_level = logging.DEBUG if args.verbose else logging.INFO
-        logging.basicConfig(
-            level=log_level,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
-        
+    async def initialize_client():
+        """Initialize the admin client with async operations"""
         global admin_client
         
         # Initialize client with config file
@@ -583,12 +577,32 @@ if __name__ == "__main__":
                     logging.warning(f"Failed to connect to: {', '.join(failed_servers)}")
             else:
                 logging.warning(f"Could not load config file {args.config} - servers can be registered manually")
-        
-        # Run the MCP server
-        run_kwargs = {}
-        if args.port:
-            run_kwargs['port'] = args.port
-            
-        await mcp_app.run(**run_kwargs)
     
-    asyncio.run(main())
+    def main():
+        # Configure logging
+        log_level = logging.DEBUG if args.verbose else logging.INFO
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        try:
+            # Initialize client asynchronously
+            asyncio.run(initialize_client())
+            
+            # Note: FastMCP doesn't support port parameter in run()
+            if args.port:
+                logging.warning(f"FastMCP doesn't support custom port in run(), ignoring port setting: {args.port}")
+                logging.warning("FastMCP will use its default port configuration")
+            
+            # Run the MCP server synchronously (FastMCP manages its own event loop)
+            logging.info("Starting MCP Remote Admin Controller...")
+            mcp_app.run()
+            
+        except KeyboardInterrupt:
+            logging.info("Received interrupt signal, shutting down...")
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")
+            raise
+    
+    main()

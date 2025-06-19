@@ -176,6 +176,182 @@ tail -f /var/log/mcp-admin-server.log
 }
 ```
 
+### 9. FastMCP Event Loop Conflicts
+
+**Error**: `RuntimeError: Already running asyncio in this thread`
+
+**Cause**: FastMCP manages its own event loop internally using `anyio.run()`. Wrapping it with `asyncio.run()` creates a conflict.
+
+**Solution**: 
+- Make your main function synchronous
+- Call `server.run()` directly (not `await server.run()`)
+- Let FastMCP handle its own event loop
+
+**Example**:
+```python
+# ❌ WRONG - causes event loop conflict
+async def main():
+    await server.run()
+
+asyncio.run(main())
+
+# ✅ CORRECT - let FastMCP handle its own event loop
+def main():
+    server.run()
+
+main()
+```
+
+### 10. FastMCP Parameter Limitations
+
+**Issue**: FastMCP constructor and run() method don't support all expected parameters.
+
+**Limitations**:
+- `FastMCP()` constructor may not accept `port` parameter
+- `server.run()` method doesn't accept `host` or `port` parameters
+- FastMCP uses its own default configuration
+
+**Solution**: 
+- Remove unsupported parameters
+- Add warnings about ignored configuration
+- Let FastMCP use its default settings
+
+### 11. Understanding FastMCP Transport Modes
+
+**Important**: FastMCP is NOT a traditional HTTP server. It doesn't bind to network ports like a web server.
+
+#### FastMCP Transport Types:
+
+1. **STDIO Transport (Default)**:
+   - Communication via standard input/output
+   - Used for local integrations (like Claude Desktop)
+   - No network binding required
+   - Process started by client for each session
+
+2. **SSE Transport (Server-Sent Events)**:
+   - HTTP-based but uses MCP protocol over SSE
+   - For web-based deployments
+   - Still not a traditional HTTP API server
+   - Requires `mcp.run(transport="sse")`
+
+3. **Streamable HTTP Transport (Recommended for web)**:
+   - Modern HTTP-based transport
+   - More efficient than SSE
+   - Requires `mcp.run(transport="streamable-http")`
+
+#### Why No Port Binding in `netstat`?
+
+When you see logs like:
+```
+INFO Starting remote-admin-server on 0.0.0.0:8080
+```
+
+But `netstat` shows no process on port 8080, this is because:
+
+1. **FastMCP uses STDIO by default** - no network binding
+2. **The host/port configuration is ignored** in STDIO mode
+3. **FastMCP logs are misleading** - they show config values but don't reflect actual behavior
+
+#### Correct Usage for Web Deployment:
+
+```python
+# For web-based access (SSE transport)
+server.run(transport="sse", host="0.0.0.0", port=8080)
+
+# For modern web-based access (Streamable HTTP)
+server.run(transport="streamable-http", host="0.0.0.0", port=8080)
+
+# For local integration (STDIO - default)
+server.run()  # No network binding
+```
+
+### 12. Server Not Accessible from Network
+
+**Issue**: Can't connect to server from remote clients
+
+**Cause**: Server running in STDIO mode (default) instead of web transport
+
+**Solution**: Explicitly specify web transport:
+
+```python
+if __name__ == "__main__":
+    # For web access
+    server.run(transport="streamable-http", host="0.0.0.0", port=8080)
+    
+    # OR for legacy SSE
+    server.run(transport="sse", host="0.0.0.0", port=8080)
+```
+
+### 13. Configuration Loading Issues
+
+**Error**: Configuration file not found or invalid JSON
+
+**Solutions**:
+- Verify file path: `server_config.json` exists in current directory
+- Check JSON syntax with a validator
+- Ensure environment variables are properly set
+- Use absolute paths if needed
+
+### 14. Environment Variable Substitution
+
+**Issue**: Environment variables not being substituted in config
+
+**Format**: Use `${VARIABLE_NAME}` syntax in JSON config files
+
+**Example**:
+```json
+{
+  "auth_token": "${MCP_AUTH_TOKEN}",
+  "database_path": "${HOME}/data/db.sqlite"
+}
+```
+
+**Troubleshooting**:
+- Ensure environment variables are set before starting server
+- Check variable names match exactly (case-sensitive)
+- Use `echo $VARIABLE_NAME` to verify values
+
+### 15. Client Connection Issues
+
+**Issue**: MCP clients can't connect to server
+
+**For STDIO clients (like Claude Desktop)**:
+- Server should run in STDIO mode (default)
+- Client launches server process directly
+- No network configuration needed
+
+**For web clients**:
+- Use SSE or Streamable HTTP transport
+- Ensure correct URL format
+- Check firewall settings
+- Verify authentication tokens
+
+### 16. Tool Registration Problems
+
+**Issue**: Tools not appearing in client
+
+**Causes**:
+- Function not decorated with `@server.tool()`
+- Import errors in server code
+- Server not fully initialized
+
+**Solutions**:
+- Check server logs for errors
+- Verify all imports work
+- Test function independently
+- Ensure proper async/await usage
+
+### 17. Performance Issues
+
+**Issue**: Slow response times or timeouts
+
+**Solutions**:
+- Use async functions for I/O operations
+- Implement proper error handling
+- Add timeout configurations
+- Monitor resource usage
+- Use connection pooling for databases
+
 ## Debugging Tips
 
 ### Enable Debug Logging
@@ -204,11 +380,11 @@ python3 remote_admin_server.py --config test_config.json --port 8081
 
 ## Getting Help
 
-1. **Check logs:** Always check both server logs and audit logs
-2. **Validate config:** Ensure JSON configuration is valid
-3. **Test permissions:** Verify file and command permissions
-4. **Check dependencies:** Ensure all required packages are installed
-5. **Review security settings:** Check if operations are allowed by configuration
+1. **Check the logs** - Enable verbose logging for detailed output
+2. **Verify FastMCP version** - Ensure you're using a compatible version
+3. **Test with minimal config** - Start with basic configuration
+4. **Check MCP protocol documentation** - Understand MCP vs HTTP differences
+5. **Review FastMCP documentation** - https://gofastmcp.com/
 
 ## Configuration Validation Script
 
@@ -245,4 +421,20 @@ if __name__ == "__main__":
     
     if not validate_config(sys.argv[1]):
         sys.exit(1)
-``` 
+```
+
+## FastMCP vs Traditional HTTP Servers
+
+**Key Difference**: FastMCP implements the Model Context Protocol (MCP), not HTTP REST APIs.
+
+| Aspect | Traditional HTTP Server | FastMCP Server |
+|--------|------------------------|----------------|
+| Protocol | HTTP REST/GraphQL | MCP over STDIO/SSE |
+| Client | Web browsers, curl, etc | MCP clients (Claude Desktop, etc) |
+| Binding | Binds to network ports | STDIO or MCP-specific transports |
+| Usage | General web services | AI agent integrations |
+| Discovery | Manual API documentation | Automatic tool/resource discovery |
+
+**When to use each**:
+- **FastMCP**: For AI agent integrations, tool discovery, MCP protocol compatibility
+- **Traditional HTTP**: For web APIs, REST services, general client access 

@@ -90,12 +90,59 @@ class CommandExecutor(ICommandExecutor):
         command: str,
         params: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        """Execute command on remote server via HTTP"""
-        # This would be implemented based on the specific protocol
+        """Execute command on remote server via MCP or HTTP"""
+        # Try MCP client first
+        if hasattr(self._connection_manager, 'get_mcp_client'):
+            mcp_client = self._connection_manager.get_mcp_client(server.name)
+            if mcp_client:
+                return await self._execute_mcp_command(mcp_client, command, params)
+        
+        # Fallback to HTTP implementation
+        return await self._execute_http_command(server, command, params)
+    
+    async def _execute_mcp_command(
+        self,
+        client,
+        command: str,
+        params: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Execute command via MCP client"""
+        try:
+            async with client:
+                # Call the MCP tool
+                result = await client.call_tool(command, params or {})
+                
+                # Convert MCP result to our expected format
+                if result and len(result) > 0:
+                    # MCP returns a list of content objects
+                    content = result[0]
+                    if hasattr(content, 'text'):
+                        # Try to parse as JSON if possible
+                        try:
+                            import json
+                            return json.loads(content.text)
+                        except:
+                            return {"output": content.text}
+                    else:
+                        return {"result": str(content)}
+                else:
+                    return {"status": "success", "message": "Command executed successfully"}
+                    
+        except Exception as e:
+            raise Exception(f"MCP command execution failed: {e}")
+    
+    async def _execute_http_command(
+        self,
+        server,
+        command: str,
+        params: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Execute command via HTTP (legacy)"""
+        # This would be implemented based on the specific HTTP API
         # For now, returning a placeholder implementation
         return {
             "status": "success",
-            "message": f"Command {command} executed on {server.name}",
+            "message": f"Command {command} executed on {server.name} via HTTP",
             "params": params or {}
         }
     

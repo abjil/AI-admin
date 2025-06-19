@@ -1,4 +1,5 @@
 {
+  "transport": "stdio",
   "server": {
     "name": "remote-admin-server",
     "port": 8080,

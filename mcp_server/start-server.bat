@@ -7,6 +7,7 @@ REM Set default values
 set CONFIG_FILE=server_config.json
 set PORT=
 set HOST=
+set TRANSPORT=
 set ARGS=
 
 REM Parse command line arguments
@@ -48,6 +49,18 @@ if "%1"=="--host" (
     shift
     goto parse_args
 )
+if "%1"=="-t" (
+    set TRANSPORT=%2
+    shift
+    shift
+    goto parse_args
+)
+if "%1"=="--transport" (
+    set TRANSPORT=%2
+    shift
+    shift
+    goto parse_args
+)
 if "%1"=="--help" (
     goto show_usage
 )
@@ -58,19 +71,27 @@ goto show_usage
 echo Usage: %0 [OPTIONS]
 echo.
 echo Options:
-echo   -c, --config FILE    Configuration file (default: server_config.json)
-echo   -p, --port PORT      Override port from config
-echo   -h, --host HOST      Override host from config (Note: FastMCP ignores this)
-echo   --help              Show this help message
+echo   -c, --config FILE      Configuration file (default: server_config.json)
+echo   -p, --port PORT        Override port from config
+echo   -h, --host HOST        Override host from config
+echo   -t, --transport MODE   Transport mode: stdio, sse, streamable-http
+echo   --help                Show this help message
 echo.
 echo Environment Variables:
 echo   MCP_AUTH_TOKEN       Authentication token for the server
 echo.
+echo Transport Modes:
+echo   stdio (default)        For local MCP clients like Claude Desktop
+echo   sse                   For web clients using Server-Sent Events
+echo   streamable-http       For modern web clients (recommended)
+echo.
 echo Examples:
-echo   %0                                    # Use default config
-echo   %0 -c production_config.json         # Use custom config
-echo   %0 -p 9090                          # Override port
-echo   set MCP_AUTH_TOKEN=secret123 ^& %0    # With authentication
+echo   %0                                    # STDIO mode (default)
+echo   %0 -t sse                            # SSE web mode
+echo   %0 -t streamable-http                # Modern web mode
+echo   %0 -c production.json -t sse         # Custom config + SSE
+echo   %0 -t sse -p 9090                   # SSE mode, custom port
+echo   set MCP_AUTH_TOKEN=secret123 ^& %0 -t sse  # With authentication
 goto :eof
 
 :start_server
@@ -96,6 +117,10 @@ if not "%PORT%"=="" (
 
 if not "%HOST%"=="" (
     set ARGS=%ARGS% --host %HOST%
+)
+
+if not "%TRANSPORT%"=="" (
+    set ARGS=%ARGS% --transport %TRANSPORT%
 )
 
 REM Check for authentication token

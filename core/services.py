@@ -10,7 +10,7 @@ from .interfaces import (
 )
 from .config import ConfigurationManager, EnvironmentVariableSubstitutor
 from .registry import ServerRegistry
-from .connections import ConnectionManager, HTTPSConnectionFactory
+from .connections import ConnectionManager, HTTPSConnectionFactory, MCPConnectionFactory
 from .commands import CommandExecutor
 from .security import SecurityManager
 from .audit import AuditLogger
@@ -30,7 +30,10 @@ class RemoteAdminService:
         self._server_registry = ServerRegistry()
         
         # Connection factories (extensible for new protocols)
-        connection_factories = [HTTPSConnectionFactory()]
+        connection_factories = [
+            MCPConnectionFactory(),  # MCP protocol support (SSE, Streamable HTTP)
+            HTTPSConnectionFactory()  # Legacy HTTP support
+        ]
         self._connection_manager = ConnectionManager(connection_factories)
         
         # Security manager (initialized later after config load)

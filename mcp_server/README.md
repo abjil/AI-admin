@@ -36,6 +36,37 @@ This is the server component that runs on remote machines to be administered via
 
 The server uses a JSON configuration file with the following sections:
 
+### Transport Modes
+
+The server supports three transport modes for different deployment scenarios:
+
+1. **STDIO (Default)** - For local integrations
+   ```json
+   { "transport": "stdio" }
+   ```
+   - Communication via standard input/output
+   - No network binding required
+   - Designed for MCP clients like Claude Desktop
+   - Process started by client for each session
+
+2. **SSE (Server-Sent Events)** - For web deployments (legacy)
+   ```json
+   { "transport": "sse" }
+   ```
+   - HTTP-based transport using Server-Sent Events
+   - Binds to network port
+   - Client URL: `http://host:port/sse`
+   - Legacy option, prefer Streamable HTTP for new projects
+
+3. **Streamable HTTP** - For modern web deployments
+   ```json
+   { "transport": "streamable-http" }
+   ```
+   - Modern HTTP-based transport
+   - More efficient than SSE
+   - Binds to network port
+   - Client URL: `http://host:port/mcp`
+
 ### Server Configuration
 ```json
 {
@@ -100,10 +131,27 @@ The server uses a JSON configuration file with the following sections:
 python3 remote_admin_server.py [OPTIONS]
 
 Options:
-  -c, --config FILE    Configuration file (default: server_config.json)
-  -p, --port PORT      Override port from config
-  -h, --host HOST      Override host from config
-  --help              Show help message
+  -c, --config FILE      Configuration file (default: server_config.json)
+  -p, --port PORT        Override port from config
+  --host HOST            Override host from config
+  -t, --transport MODE   Transport mode: stdio, sse, streamable-http
+  --help                Show help message
+```
+
+### Transport Mode Examples
+
+```bash
+# STDIO mode (default) - for Claude Desktop integration
+python3 remote_admin_server.py
+
+# SSE mode - for web clients (legacy)
+python3 remote_admin_server.py --transport sse
+
+# Streamable HTTP mode - for modern web clients
+python3 remote_admin_server.py --transport streamable-http
+
+# Override config settings
+python3 remote_admin_server.py --transport sse --host 0.0.0.0 --port 8080
 ```
 
 ## 🔒 Security Features

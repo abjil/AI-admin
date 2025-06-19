@@ -17,8 +17,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Set
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-from mcp.server.fastmcp import FastMCP
-from mcp import types
+from fastmcp import FastMCP
 
 # Global configuration
 config = {}
@@ -221,14 +220,8 @@ def initialize_server(config: ServerConfiguration):
     
     server_config = config.get("server")
     
-    # Try to initialize FastMCP with port if supported
-    try:
-        # Some versions might support port in constructor
-        mcp_server = FastMCP(server_config["name"], port=server_config["port"])
-    except TypeError:
-        # Fallback to basic initialization
-        logger.warning("FastMCP doesn't support port in constructor, using default configuration")
-        mcp_server = FastMCP(server_config["name"])
+    # Initialize FastMCP with name (similar to working example)
+    mcp_server = FastMCP(server_config["name"])
     
     return mcp_server
 

@@ -25,6 +25,22 @@ TypeError: FastMCP.run() got an unexpected keyword argument 'port'
 - Use a reverse proxy (nginx, Apache) to bind to specific host/port
 - Modify the FastMCP source if you need specific network configuration
 
+### 1b. RuntimeError: Already running asyncio in this thread
+
+**Error:**
+```
+RuntimeError: Already running asyncio in this thread
+```
+
+**Cause:** FastMCP uses anyio.run() internally, which conflicts with existing asyncio event loops.
+
+**Solution:**
+- Server updated to call `server.run()` directly without `asyncio.run()` wrapper
+- FastMCP should manage its own event loop internally
+- Ensure the script is run directly, not from within another async context
+
+**Fixed in:** Server version with direct `run()` call
+
 ### 2. Authentication Token Issues
 
 **Issue:** Server shows "Authentication token configured" even when MCP_AUTH_TOKEN is not set.

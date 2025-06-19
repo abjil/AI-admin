@@ -79,10 +79,28 @@ async def test_server_creation():
     
     return True
 
+def test_event_loop():
+    """Test event loop compatibility"""
+    print("\nTesting event loop compatibility...")
+    
+    try:
+        # Check if we're in an event loop
+        loop = asyncio.get_running_loop()
+        print("✗ Already in an asyncio event loop - this may cause issues with FastMCP")
+        print("  FastMCP should be run from a clean Python process")
+        return False
+    except RuntimeError:
+        print("✓ No active event loop detected - good for FastMCP")
+        return True
+
 def main():
     """Main test function"""
     print("FastMCP Configuration Test")
     print("=" * 40)
+    
+    # Test event loop first
+    if not test_event_loop():
+        print("\nWarning: Event loop issues detected!")
     
     # Test constructor
     if not test_fastmcp_constructor():
@@ -96,6 +114,7 @@ def main():
     
     print("\n" + "=" * 40)
     print("Test completed. Check output above for supported parameters.")
+    print("\nIf you see event loop warnings, run this script in a fresh Python process.")
 
 if __name__ == "__main__":
     main() 

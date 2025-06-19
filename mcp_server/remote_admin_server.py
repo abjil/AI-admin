@@ -609,7 +609,7 @@ def register_tools(server: FastMCP, server_config: ServerConfiguration):
         }
 
 
-async def main():
+def main():
     """Main function to run the MCP server"""
     global config
     
@@ -676,8 +676,17 @@ async def main():
         logger.warning(f"FastMCP doesn't support custom port in run(), ignoring port setting: {server_config['port']}")
         logger.warning("FastMCP will use its default port configuration")
     
-    await server.run()
+    # FastMCP manages its own event loop internally
+    # Call run() directly - it's designed to be called from a synchronous context
+    try:
+        # This should be a synchronous call that handles async internally
+        server.run()
+    except KeyboardInterrupt:
+        logger.info("Received interrupt signal, shutting down...")
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        raise
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    main() 

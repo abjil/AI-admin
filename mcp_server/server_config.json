@@ -1,0 +1,56 @@
+{
+  "server": {
+    "name": "remote-admin-server",
+    "port": 8080,
+    "host": "0.0.0.0",
+    "auth_token": "${MCP_AUTH_TOKEN}",
+    "log_level": "INFO",
+    "max_connections": 10
+  },
+  "security": {
+    "allowed_commands": [
+      "systemctl", "service", "ps", "top", "df", "free", "uptime",
+      "netstat", "ss", "tail", "head", "grep", "ls", "find", "cat", 
+      "less", "journalctl", "whoami", "id", "hostname", "date"
+    ],
+    "allowed_paths": [
+      "/var/log",
+      "/etc",
+      "/proc",
+      "/sys",
+      "/tmp"
+    ],
+    "command_timeout": 30,
+    "max_file_size": 1048576,
+    "max_file_lines": 500,
+    "enable_dangerous_commands": false,
+    "dangerous_commands": [
+      "rm", "rmdir", "mv", "cp", "chmod", "chown", "mount", "umount",
+      "fdisk", "mkfs", "dd", "reboot", "shutdown", "halt", "poweroff"
+    ]
+  },
+  "logging": {
+    "file": null,
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "max_size": 10485760,
+    "backup_count": 5,
+    "audit_enabled": true,
+    "audit_file": "/tmp/mcp-admin-audit.log"
+  },
+  "features": {
+    "system_status": true,
+    "file_operations": true,
+    "shell_execution": true,
+    "service_management": true,
+    "log_retrieval": true,
+    "process_management": true,
+    "network_info": true
+  },
+  "limits": {
+    "max_processes_list": 50,
+    "max_log_lines": 100,
+    "max_concurrent_commands": 3,
+    "rate_limit_per_minute": 30
+  }
+} 

@@ -50,6 +50,8 @@ The server uses a JSON configuration file with the following sections:
 }
 ```
 
+**Note**: The `host` parameter is included for configuration completeness but FastMCP currently only supports port binding. The server will bind to all interfaces (0.0.0.0 equivalent).
+
 ### Security Configuration
 ```json
 {

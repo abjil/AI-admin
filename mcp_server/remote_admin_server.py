@@ -648,7 +648,8 @@ async def main():
     server_config = config.get("server")
     logger.info(f"Starting {server_config['name']} on {server_config['host']}:{server_config['port']}")
     
-    if server_config["auth_token"]:
+    auth_token = server_config["auth_token"]
+    if auth_token and not auth_token.startswith("${"):
         logger.info("Authentication token configured")
     else:
         logger.warning("No authentication token set - server is unsecured!")
@@ -659,7 +660,11 @@ async def main():
     logger.info(f"Enabled features: {', '.join(enabled_features)}")
     
     # Run the server
-    await server.run(host=server_config["host"], port=server_config["port"])
+    # Note: FastMCP doesn't support host parameter, only port
+    if server_config["host"] != "0.0.0.0":
+        logger.warning(f"FastMCP doesn't support custom host binding, ignoring host setting: {server_config['host']}")
+    
+    await server.run(port=server_config["port"])
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ show_usage() {
     echo "Options:"
     echo "  -c, --config FILE    Configuration file (default: server_config.json)"
     echo "  -p, --port PORT      Override port from config"
-    echo "  -h, --host HOST      Override host from config"
+    echo "  -h, --host HOST      Override host from config (Note: FastMCP ignores this)"
     echo "  -v, --verbose        Enable verbose logging"
     echo "  --help              Show this help message"
     echo ""

@@ -31,12 +31,36 @@ core/
 ├── __init__.py
 ├── models.py           # Data structures (SRP)
 ├── interfaces.py       # Abstract interfaces (DIP, ISP)
-├── implementations.py  # Concrete implementations (SRP, OCP)
+├── config.py          # Configuration implementations (SRP)
+├── registry.py        # Server registry implementations (SRP)
+├── connections.py     # Connection management implementations (SRP)
+├── commands.py        # Command execution implementations (SRP)
+├── security.py        # Security management implementations (SRP)
+├── audit.py           # Audit logging implementations (SRP)
+├── implementations.py # Compatibility layer re-exports (backward compatibility)
 ├── services.py        # Service coordination (SRP, DIP)
 └── mcp_tools.py       # MCP tool providers (ISP)
 
 ai-admin-refactored.py  # Main application (SRP)
 ```
+
+### Modular Structure
+
+The implementations have been further refactored into focused modules:
+
+- **`config.py`**: Configuration management (`ConfigurationManager`, `EnvironmentVariableSubstitutor`)
+- **`registry.py`**: Server registry functionality (`ServerRegistry`)
+- **`connections.py`**: Connection management (`ConnectionManager`, `HTTPSConnectionFactory`)
+- **`commands.py`**: Command execution (`CommandExecutor`)
+- **`security.py`**: Security policies (`SecurityManager`)
+- **`audit.py`**: Audit logging (`AuditLogger`)
+- **`implementations.py`**: Compatibility layer that re-exports all implementations
+
+This modular approach provides:
+- **Better Organization**: Related functionality is grouped together
+- **Easier Navigation**: Smaller, focused files are easier to work with
+- **Reduced Coupling**: Changes in one module don't affect others
+- **Enhanced Maintainability**: Each module can be understood and modified independently
 
 ### SOLID Compliance
 

@@ -220,7 +220,6 @@ async def main() -> None:
                 logger.info("You can still use the application, but servers must be registered manually")
                 # Initialize with empty service for manual registration
                 app._admin_service = RemoteAdminService()
-                from core.mcp_tools import MCPToolsProvider
                 app._mcp_tools = MCPToolsProvider(app._admin_service, app._mcp_app)
             else:
                 # Try to connect to servers
@@ -229,7 +228,6 @@ async def main() -> None:
             logger.info("Auto-loading disabled - servers can be registered manually")
             # Initialize with empty service
             app._admin_service = RemoteAdminService()
-            from core.mcp_tools import MCPToolsProvider
             app._mcp_tools = MCPToolsProvider(app._admin_service, app._mcp_app)
         
         # Run the MCP server

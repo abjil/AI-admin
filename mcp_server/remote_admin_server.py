@@ -220,7 +220,15 @@ def initialize_server(config: ServerConfiguration):
     global mcp_server
     
     server_config = config.get("server")
-    mcp_server = FastMCP(server_config["name"])
+    
+    # Try to initialize FastMCP with port if supported
+    try:
+        # Some versions might support port in constructor
+        mcp_server = FastMCP(server_config["name"], port=server_config["port"])
+    except TypeError:
+        # Fallback to basic initialization
+        logger.warning("FastMCP doesn't support port in constructor, using default configuration")
+        mcp_server = FastMCP(server_config["name"])
     
     return mcp_server
 
@@ -660,11 +668,15 @@ async def main():
     logger.info(f"Enabled features: {', '.join(enabled_features)}")
     
     # Run the server
-    # Note: FastMCP doesn't support host parameter, only port
+    # Note: FastMCP doesn't support host or port parameters in run()
     if server_config["host"] != "0.0.0.0":
         logger.warning(f"FastMCP doesn't support custom host binding, ignoring host setting: {server_config['host']}")
     
-    await server.run(port=server_config["port"])
+    if server_config["port"] != 8080:
+        logger.warning(f"FastMCP doesn't support custom port in run(), ignoring port setting: {server_config['port']}")
+        logger.warning("FastMCP will use its default port configuration")
+    
+    await server.run()
 
 
 if __name__ == "__main__":

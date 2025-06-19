@@ -2,21 +2,28 @@
 
 ## Common Issues and Solutions
 
-### 1. FastMCP.run() TypeError: unexpected keyword argument 'host'
+### 1. FastMCP.run() TypeError: unexpected keyword arguments
 
-**Error:**
+**Errors:**
 ```
 TypeError: FastMCP.run() got an unexpected keyword argument 'host'
+TypeError: FastMCP.run() got an unexpected keyword argument 'port'
 ```
 
-**Cause:** FastMCP doesn't support the `host` parameter in its `run()` method.
+**Cause:** FastMCP doesn't support `host` or `port` parameters in its `run()` method.
 
 **Solution:** 
-- The server has been updated to only use the `port` parameter
-- The `host` configuration is kept for future compatibility but ignored
-- Server will bind to all interfaces (equivalent to 0.0.0.0)
+- The server has been updated to call `run()` without parameters
+- The `host` and `port` configurations are kept for future compatibility but may be ignored
+- Server will use FastMCP's default host/port configuration
+- Check FastMCP documentation for supported configuration methods
 
-**Fixed in:** Server version with updated `main()` function
+**Fixed in:** Server version with parameterless `run()` call
+
+**Alternative Solutions:**
+- Use environment variables if FastMCP supports them (check FastMCP docs)
+- Use a reverse proxy (nginx, Apache) to bind to specific host/port
+- Modify the FastMCP source if you need specific network configuration
 
 ### 2. Authentication Token Issues
 

@@ -1,0 +1,79 @@
+{
+  "remote_servers": [
+    {
+      "name": "production-web-01",
+      "host": "10.0.1.100",
+      "port": 8080,
+      "protocol": "https",
+      "auth_token": "${PROD_WEB_01_TOKEN}",
+      "tags": ["production", "web-server", "critical"],
+      "ssl_verify": true,
+      "timeout": 30,
+      "retry_attempts": 3
+    },
+    {
+      "name": "dev-server-01",
+      "host": "192.168.1.100",
+      "port": 8080,
+      "protocol": "https",
+      "auth_token": "${DEV_SERVER_TOKEN}",
+      "tags": ["development", "testing"],
+      "ssl_verify": false,
+      "timeout": 15
+    },
+    {
+      "name": "ci-build-server",
+      "host": "ci.internal.company.com",
+      "port": 8443,
+      "protocol": "https",
+      "auth_token": "${CI_SERVER_TOKEN}",
+      "tags": ["ci", "build", "automation"],
+      "ssl_verify": true,
+      "custom_headers": {
+        "X-CI-Agent": "mcp-admin"
+      }
+    },
+    {
+      "name": "database-primary",
+      "host": "db-primary.internal",
+      "port": 8080,
+      "protocol": "https",
+      "auth_token": "${DB_PRIMARY_TOKEN}",
+      "tags": ["database", "primary", "critical"],
+      "ssl_verify": true,
+      "timeout": 60,
+      "allowed_commands": ["system_status", "get_logs", "service_status"]
+    }
+  ],
+  "security": {
+    "default_timeout": 30,
+    "max_concurrent_connections": 10,
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "burst_size": 10
+    },
+    "audit_log": {
+      "enabled": true,
+      "file": "/var/log/mcp-admin/audit.log",
+      "level": "INFO"
+    }
+  },
+  "server_groups": {
+    "production": {
+      "tags": ["production"],
+      "restrictions": {
+        "dangerous_commands": false,
+        "file_write": false,
+        "service_restart": false
+      }
+    },
+    "development": {
+      "tags": ["development", "testing"],
+      "restrictions": {
+        "dangerous_commands": true,
+        "file_write": true,
+        "service_restart": true
+      }
+    }
+  }
+} 

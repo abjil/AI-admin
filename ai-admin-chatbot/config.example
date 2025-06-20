@@ -1,0 +1,13 @@
+# Copy this file to .env and fill in your actual values
+
+# TogetherAI API Configuration
+TOGETHER_API_KEY=your_together_ai_api_key_here
+
+# Flask Configuration
+FLASK_SECRET_KEY=your_secret_key_here
+FLASK_DEBUG=False
+PORT=5000
+
+# MCP Configuration
+MCP_CLIENT_PATH=../ai-admin-refactored.py
+MCP_CONFIG_PATH=../config.json 

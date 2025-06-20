@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Admin Chatbot</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .main-container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .chat-panel {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+        }
+        
+        .mcp-panel {
+            flex: 0 0 400px;
+            background: #f8f9fa;
+            border-left: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+            max-width: 600px;
+        }
+        
+        .resize-handle {
+            width: 5px;
+            background: #dee2e6;
+            cursor: col-resize;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .resize-handle:hover {
+            background: #007bff;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            flex-shrink: 0;
+        }
+        
+        .mcp-header {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            flex-shrink: 0;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #ffffff;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+            text-align: right;
+        }
+        
+        .message.assistant {
+            text-align: left;
+        }
+        
+        .message-bubble {
+            display: inline-block;
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            position: relative;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+        
+        .message.assistant .message-bubble {
+            background: #e9ecef;
+            color: #333;
+            border: 1px solid #dee2e6;
+        }
+        
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #dee2e6;
+            background: white;
+            flex-shrink: 0;
+        }
+        
+        .chat-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .chat-input textarea {
+            resize: none;
+            border-radius: 25px;
+            border: 1px solid #dee2e6;
+            padding: 12px 20px;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .chat-input textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+        
+        .send-btn {
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border: none;
+            color: white;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
+        
+        .mcp-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .server-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .server-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .server-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .server-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .server-status.connected {
+            background: #28a745;
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+        }
+        
+        .server-status.disconnected {
+            background: #dc3545;
+        }
+        
+        .server-info {
+            padding: 15px;
+        }
+        
+        .server-tools {
+            padding: 0 15px 15px;
+        }
+        
+        .tool-badge {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin: 2px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .tool-badge:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-indicator.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background: #e9ecef;
+            border-radius: 18px;
+            margin-bottom: 15px;
+            max-width: 70%;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c757d;
+            animation: typing 1.5s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Chat Panel -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-robot me-2"></i>
+                    <div>
+                        <h5 class="mb-0">AI Admin Assistant</h5>
+                        <small class="opacity-75">Powered by TogetherAI & MCP</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-bubble">
+                        <div>👋 Hello! I'm your AI Admin Assistant with access to remote server management tools via MCP.</div>
+                        <div class="message-timestamp">Just now</div>
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <div class="chat-input-group">
+                    <textarea 
+                        id="messageInput" 
+                        class="form-control" 
+                        rows="2" 
+                        placeholder="Ask me about server management, system status, or any admin tasks..."
+                        onkeypress="handleKeyPress(event)"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="error-message" id="errorMessage" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <!-- Resize Handle -->
+        <div class="resize-handle" id="resizeHandle"></div>
+        
+        <!-- MCP Panel -->
+        <div class="mcp-panel">
+            <div class="mcp-header">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-server me-2"></i>
+                    <div>
+                        <h5 class="mb-0">MCP Servers</h5>
+                        <small class="opacity-75">Remote Administration Tools</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mcp-content">
+                <div class="status-indicator disconnected" id="mcpStatus">
+                    <div class="loading-spinner"></div>
+                    <span>Connecting to MCP client...</span>
+                </div>
+                
+                <div id="serversList">
+                    <!-- Server cards will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <script>
+        // Initialize Socket.IO
+        const socket = io();
+        
+        // Global variables
+        let isResizing = false;
+        let mcpServers = [];
+        let isConnected = false;
+        
+        // Socket event handlers
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            isConnected = true;
+            updateMCPStatus(true);
+            hideError();
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+            isConnected = false;
+            updateMCPStatus(false);
+            showError('Disconnected from server. Trying to reconnect...');
+        });
+        
+        socket.on('mcp_status', function(data) {
+            console.log('MCP Status:', data);
+            updateMCPServers(data);
+        });
+        
+        socket.on('chat_response', function(data) {
+            console.log('Chat response:', data);
+            hideTypingIndicator();
+            displayMessage(data.content, 'assistant');
+            enableSendButton();
+        });
+        
+        socket.on('error', function(data) {
+            console.error('Socket error:', data);
+            hideTypingIndicator();
+            showError('Error: ' + data.message);
+            enableSendButton();
+        });
+        
+        // Chat functions
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            if (!isConnected) {
+                showError('Not connected to server. Please wait...');
+                return;
+            }
+            
+            // Display user message
+            displayMessage(message, 'user');
+            
+            // Clear input
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            disableSendButton();
+            
+            // Send message via API
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideTypingIndicator();
+                enableSendButton();
+                if (data.error) {
+                    showError('Error: ' + data.error);
+                    displayMessage('Sorry, I encountered an error: ' + data.error, 'assistant');
+                } else {
+                    displayMessage(data.content, 'assistant');
+                }
+            })
+            .catch(error => {
+                hideTypingIndicator();
+                enableSendButton();
+                showError('Network error: ' + error.message);
+                displayMessage('Sorry, I encountered a network error. Please try again.', 'assistant');
+            });
+        }
+        
+        function displayMessage(content, role) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div>${escapeHtml(content)}</div>
+                    <div class="message-timestamp">${timestamp}</div>
+                </div>
+            `;
+            
+            // Insert before typing indicator
+            const typingIndicator = document.getElementById('typingIndicator');
+            messagesDiv.insertBefore(messageDiv, typingIndicator);
+            
+            // Scroll to bottom
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'block';
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+        
+        function disableSendButton() {
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading-spinner"></div>';
+        }
+        
+        function enableSendButton() {
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(hideError, 5000); // Hide after 5 seconds
+        }
+        
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+        
+        // MCP functions
+        function updateMCPStatus(connected) {
+            const statusDiv = document.getElementById('mcpStatus');
+            if (connected) {
+                statusDiv.className = 'status-indicator connected';
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i><span>Connected to MCP client</span>';
+            } else {
+                statusDiv.className = 'status-indicator disconnected';
+                statusDiv.innerHTML = '<i class="fas fa-times-circle"></i><span>Disconnected from MCP client</span>';
+            }
+        }
+        
+        function updateMCPServers(data) {
+            mcpServers = data.servers || [];
+            const serversList = document.getElementById('serversList');
+            
+            if (mcpServers.length === 0) {
+                serversList.innerHTML = '<p class="text-muted text-center">No servers available</p>';
+                return;
+            }
+            
+            serversList.innerHTML = mcpServers.map(server => `
+                <div class="server-card">
+                    <div class="server-header">
+                        <div>
+                            <strong>${escapeHtml(server.name)}</strong>
+                            <br>
+                            <small class="text-muted">${escapeHtml(server.host)}:${server.port}</small>
+                        </div>
+                        <div class="server-status ${server.connected ? 'connected' : 'disconnected'}"></div>
+                    </div>
+                    <div class="server-info">
+                        <div class="mb-2">
+                            <small class="text-muted">Protocol:</small> 
+                            <span class="badge bg-secondary">${escapeHtml(server.protocol)}</span>
+                        </div>
+                        ${server.tools && server.tools.length > 0 ? `
+                        <div class="server-tools">
+                            <small class="text-muted d-block mb-2">Available Tools:</small>
+                            ${server.tools.map(tool => `
+                                <span class="tool-badge" onclick="selectTool('${escapeHtml(server.name)}', '${escapeHtml(tool)}')">${escapeHtml(tool)}</span>
+                            `).join('')}
+                        </div>
+                        ` : '<p class="text-muted mb-0">No tools available</p>'}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function selectTool(serverName, toolName) {
+            const input = document.getElementById('messageInput');
+            input.value = `Please execute ${toolName} on server ${serverName}`;
+            input.focus();
+        }
+        
+        // Resize functionality
+        function initResize() {
+            const resizeHandle = document.getElementById('resizeHandle');
+            const chatPanel = document.querySelector('.chat-panel');
+            const mcpPanel = document.querySelector('.mcp-panel');
+            
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                document.addEventListener('mousemove', handleResize);
+                document.addEventListener('mouseup', stopResize);
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            
+            function handleResize(e) {
+                if (!isResizing) return;
+                
+                const containerWidth = document.querySelector('.main-container').clientWidth;
+                const mouseX = e.clientX;
+                const chatWidth = mouseX;
+                const mcpWidth = containerWidth - mouseX - 5; // 5px for handle
+                
+                if (chatWidth >= 300 && mcpWidth >= 300 && mcpWidth <= 600) {
+                    chatPanel.style.flex = `0 0 ${chatWidth}px`;
+                    mcpPanel.style.flex = `0 0 ${mcpWidth}px`;
+                }
+            }
+            
+            function stopResize() {
+                isResizing = false;
+                document.removeEventListener('mousemove', handleResize);
+                document.removeEventListener('mouseup', stopResize);
+                document.body.style.userSelect = '';
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initResize();
+            
+            // Load MCP status
+            fetch('/api/mcp/status')
+                .then(response => response.json())
+                .then(data => updateMCPServers(data))
+                .catch(error => console.error('Failed to load MCP status:', error));
+        });
+    </script>
+</body>
+</html> 

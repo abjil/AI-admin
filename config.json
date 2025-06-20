@@ -7,7 +7,7 @@
       "protocol": "mcp-sse",
       "auth_token": "mcptest1token",
       "tags": ["production", "web-server", "critical"],
-      "ssl_verify": true,
+      "ssl_verify": false,
       "timeout": 30,
       "retry_attempts": 3
     },
@@ -16,7 +16,7 @@
       "host": "192.168.10.17",
       "port": 8080,
       "protocol": "mcp-http",
-      "auth_token": "test2token",
+      "auth_token": "mcptest2token",
       "tags": ["development", "testing"],
       "ssl_verify": false,
       "timeout": 15

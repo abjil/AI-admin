@@ -381,6 +381,43 @@
                     <span>Connecting to MCP client...</span>
                 </div>
                 
+                <!-- MCP Client Subprocess Control -->
+                <div class="card mb-3" id="mcpSubprocessCard">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-cog me-2"></i>MCP Client Subprocess</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center mb-3">
+                            <div class="col">
+                                <div id="subprocessStatus" class="d-flex align-items-center">
+                                    <div class="loading-spinner me-2"></div>
+                                    <span>Checking status...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="subprocessInfo" class="mb-3" style="display: none;">
+                            <small class="text-muted">
+                                <div><strong>PID:</strong> <span id="processPid">-</span></div>
+                                <div><strong>Memory:</strong> <span id="processMemory">-</span></div>
+                                <div><strong>CPU:</strong> <span id="processCpu">-</span></div>
+                            </small>
+                        </div>
+                        
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-success btn-sm" id="startBtn" onclick="startSubprocess()">
+                                <i class="fas fa-play me-1"></i>Start
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" id="restartBtn" onclick="restartSubprocess()">
+                                <i class="fas fa-redo me-1"></i>Restart
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" id="stopBtn" onclick="stopSubprocess()">
+                                <i class="fas fa-stop me-1"></i>Stop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="serversList">
                     <!-- Server cards will be populated here -->
                 </div>
@@ -552,6 +589,143 @@
             return div.innerHTML.replace(/\n/g, '<br>');
         }
         
+        // MCP Subprocess Management Functions
+        function updateSubprocessInfo() {
+            fetch('/api/mcp/subprocess/info')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('subprocessStatus');
+                    const infoDiv = document.getElementById('subprocessInfo');
+                    const startBtn = document.getElementById('startBtn');
+                    const restartBtn = document.getElementById('restartBtn');
+                    const stopBtn = document.getElementById('stopBtn');
+                    
+                    if (data.process_running) {
+                        statusDiv.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i><span>Running</span>';
+                        startBtn.disabled = true;
+                        restartBtn.disabled = false;
+                        stopBtn.disabled = false;
+                        
+                        // Show process info if available
+                        if (data.process_pid) {
+                            document.getElementById('processPid').textContent = data.process_pid;
+                            document.getElementById('processMemory').textContent = 
+                                data.memory_usage ? `${data.memory_usage.toFixed(1)} MB` : '-';
+                            document.getElementById('processCpu').textContent = 
+                                data.cpu_percent ? `${data.cpu_percent.toFixed(1)}%` : '-';
+                            infoDiv.style.display = 'block';
+                        }
+                    } else {
+                        statusDiv.innerHTML = '<i class="fas fa-times-circle text-danger me-2"></i><span>Stopped</span>';
+                        startBtn.disabled = false;
+                        restartBtn.disabled = true;
+                        stopBtn.disabled = true;
+                        infoDiv.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to get subprocess info:', error);
+                    const statusDiv = document.getElementById('subprocessStatus');
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i><span>Error</span>';
+                });
+        }
+        
+        function startSubprocess() {
+            const startBtn = document.getElementById('startBtn');
+            startBtn.innerHTML = '<div class="loading-spinner me-1"></div>Starting...';
+            startBtn.disabled = true;
+            
+            fetch('/api/mcp/subprocess/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('MCP client subprocess started successfully');
+                        updateSubprocessInfo();
+                        updateMCPServers(data.status);
+                    } else {
+                        showError('Failed to start subprocess: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    showError('Network error: ' + error.message);
+                })
+                .finally(() => {
+                    startBtn.innerHTML = '<i class="fas fa-play me-1"></i>Start';
+                    updateSubprocessInfo();
+                });
+        }
+        
+        function stopSubprocess() {
+            const stopBtn = document.getElementById('stopBtn');
+            stopBtn.innerHTML = '<div class="loading-spinner me-1"></div>Stopping...';
+            stopBtn.disabled = true;
+            
+            fetch('/api/mcp/subprocess/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('MCP client subprocess stopped successfully');
+                        updateSubprocessInfo();
+                        // Clear servers list
+                        updateMCPServers({ servers: [] });
+                    } else {
+                        showError('Failed to stop subprocess: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    showError('Network error: ' + error.message);
+                })
+                .finally(() => {
+                    stopBtn.innerHTML = '<i class="fas fa-stop me-1"></i>Stop';
+                    updateSubprocessInfo();
+                });
+        }
+        
+        function restartSubprocess() {
+            const restartBtn = document.getElementById('restartBtn');
+            restartBtn.innerHTML = '<div class="loading-spinner me-1"></div>Restarting...';
+            restartBtn.disabled = true;
+            
+            fetch('/api/mcp/subprocess/restart', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('MCP client subprocess restarted successfully');
+                        updateSubprocessInfo();
+                        updateMCPServers(data.status);
+                    } else {
+                        showError('Failed to restart subprocess: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    showError('Network error: ' + error.message);
+                })
+                .finally(() => {
+                    restartBtn.innerHTML = '<i class="fas fa-redo me-1"></i>Restart';
+                    updateSubprocessInfo();
+                });
+        }
+        
+        function showSuccess(message) {
+            // Create a temporary success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'alert alert-success alert-dismissible fade show';
+            successDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const mcpContent = document.querySelector('.mcp-content');
+            mcpContent.insertBefore(successDiv, mcpContent.firstChild);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.remove();
+                }
+            }, 5000);
+        }
+
         // MCP functions
         function updateMCPStatus(connected) {
             const statusDiv = document.getElementById('mcpStatus');
@@ -647,11 +821,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             initResize();
             
-            // Load MCP status
+            // Load MCP status and subprocess info
             fetch('/api/mcp/status')
                 .then(response => response.json())
                 .then(data => updateMCPServers(data))
                 .catch(error => console.error('Failed to load MCP status:', error));
+            
+            // Load subprocess info
+            updateSubprocessInfo();
+            
+            // Periodically update subprocess info every 10 seconds
+            setInterval(updateSubprocessInfo, 10000);
         });
     </script>
 </body>
